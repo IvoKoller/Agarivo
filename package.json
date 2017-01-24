@@ -1,0 +1,9 @@
+{
+  "name": "agarivo",
+  "version": "0.0.1",
+  "description": "a agario clone",
+  "dependencies": {
+    "express": "^4.14.0",
+    "sockets": "^0.4.2",
+  }
+}
