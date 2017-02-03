@@ -1,100 +1,3 @@
-//=================== Cell class ===================
-
-function Cell(x, y, name) { //extends container
-    PIXI.Container.call(this);
-    this.circle = new PIXI.Graphics();
-    this.addChild(this.circle);
-
-    this.position.x = x;
-    this.position.y = y;
-
-    this.velocity = new PIXI.Point(1,1);
-    this.speed = 3;
-    this.mass = 1;
-    this.radius = 10;
-    this.color = PIXI.utils.rgb2hex([random(0,255),random(0,255),random(0,255)]);
-    this.isPlayer = false;
-
-    this.init = function(){
-        if(name !== undefined){ //is player
-            this.isPlayer = true;
-            this.radius = 64;
-            this.mass = 10;
-
-            this.name = name;
-            this.text = new PIXI.Text(name);
-            this.text.anchor.set(0.5);
-            this.addChild(this.text);
-            this.drawText();
-        }
-
-        this.drawCircle();
-    };
-
-    this.drawCircle = function(){
-        this.circle.beginFill(this.color);
-        if(this.isPlayer) this.circle.lineStyle(this.radius*0.1, (this.color & 0xfefefe) >> 1); //border
-        //drawCircle coordinates do NOT position element
-        this.circle.drawCircle(0, 0, this.radius*0.95);
-    };
-
-    this.drawText = function(){
-        var style = {
-            stroke : '#000000',
-            strokeThickness : this.radius/30,
-            align : 'center',
-            fill: '#FFFFFF',
-            fontSize: this.radius/5
-        };
-        this.text.style = style;
-        this.text.text = this.name + '\n' + this.mass;
-    };
-
-    this.eat = function(other){
-        if(distance(this.position, this.position) < this.radius + other.radius){
-            //delete from world
-            world.removeChild(i);
-            other.destroy();
-            
-            this.radius = Math.sqrt(Math.pow(this.radius,2) + Math.pow(other.radius,2));
-            this.mass += other.mass;
-            this.circle.clear();
-            this.drawCircle();
-            //update Text
-            this.drawText();
-            //send message to server
-        }
-    };
-
-    this.update = function(){
-        var mouse = renderer.plugins.interaction.mouse.global;
-        //calculate translation
-        mouse.x -= window.innerWidth/2;
-        mouse.y -= window.innerHeight/2;
-
-        this.velocity = limit(mouse,speed);
-
-        this.position.x += this.velocity.x;
-        this.position.y += this.velocity.y;
-    };
-
-    //initialize Object
-    this.init();
-}
-//Set Cell's prototype to Container's prototype
-Cell.prototype = Object.create(PIXI.Container.prototype);
-// Set constructor back to Cell
-Cell.prototype.constructor = Cell;
-
-
-//=================== Setup Socket ===================
-
-var players = [];
-
-//Connect to server
-var socket = io.connect('http://localhost:8888');
-socket.on('heartbeat', function(data) { players = data; }); //callback if data is recieved
-
 //=================== Setup PIXI ===================
 
 //Create a Pixi renderer auto detect -> try WebGL and use canvas as fallback
@@ -124,28 +27,91 @@ stage.addChild(world);
 
 //=================== Setup game ===================
 
-// var texture = PIXI.Texture.fromImage('img/grid.png');
-// var background = new PIXI.extras.TilingSprite(texture, window.innerWidth, window.innerHeight);
-// world.addChild(background);
+var texture = PIXI.Texture.fromImage('img/gridTriangular.png');
+var background = new PIXI.extras.TilingSprite(texture, 20000, 20000);
+background.position.x = -10000;
+background.position.y = -10000;
+world.addChild(background);
+
+//blur world
+//var filter =  new PIXI.filters.BlurFilter();
+//filter.blur = 100;
+//world.filters = [filter];
+//zoom-in effect (add this on start of game loop)
+//filter.blur = lerp(filter.blur,0,0.1);
+
+//show login
+
+//...
 
 //get random position, which is not inside other player
-var player = new Cell(0,0,"Player");
+var player = new Cell(0,0,10,"Player");
 world.addChild(player);
 
+//=================== Setup Socket ===================
+
+var players = [];
+var food = [];
+
+//Connect to server
+//var socket = io.connect('http://192.168.1.130:8888');
+var socket = io.connect('http://localhost:8888');
+
+socket.on('start', function(data){
+    for(var i = 0; i < data.length; i++) {
+        var newPlayer = new Cell(data[i].x, data[i].y, data[i].mass,
+                         data[i].name, data[i].color, data[i].id);
+        players.push(newPlayer);
+        world.addChild(newPlayer);
+    }
+});
+
+socket.on('update', function(data) {
+    //console.log(data.id + " " + data.x + " " + data.y + " " + data.mass);
+    for(var i = 0; i < players.length; i++){
+        if (players[i].id == data.id) {
+            players[i].position.x = data.x;
+            players[i].position.y = data.y;
+            players[i].mass = data.mass;
+            players[i].drawCircle();
+            players[i].drawText();
+            break;
+        }
+    }
+});
+
+socket.on('newPlayer', function(data) {
+    var newPlayer = new Cell(data.x, data.y, data.mass, data.name, data.color, data.id);
+    players.push(newPlayer);
+    world.addChild(newPlayer);
+});
+
+socket.on('deadPlayer', function(data){
+
+});
+
 var data = {
-    id: player.id,
+    name: player.name,
     x: player.position.x,
     y: player.position.y,
-    radius: player.radius,
+    mass: player.mass,
     color: player.color
 };
+
 socket.emit('start', data);
 
-//get food
-for(var i = 0; i < 1000; i++){
-    var cell = new Cell(random(-1000,1000),random(-1000,1000));
-    world.addChild(cell);
-}
+setInterval(function(){
+    var data = {
+        x: player.position.x,
+        y: player.position.y,
+        mass: player.mass
+    };
+    socket.emit('move', data);
+},33);
+
+//create world
+for(var i = 0; i < 1000; i++) food.push(new Cell(random(-1000,1000), random(-1000,1000), 1));
+for(var i = 0; i < food.length; i++) world.addChild(food[i]);
 
 //start game loop
 gameLoop();
@@ -160,34 +126,45 @@ function gameLoop() {
 }
 
 function state() {
-    //update position
+    //update positions
+    player.update();
 
-    world.scale = new PIXI.Point(100/player.radius, 100/player.radius);
-    world.pivot.x = player.position.x;
-    world.pivot.y = player.position.y;
+    //smooth camera movement
+    //TODO: make scale (150) variable by scrolling
+    var newScale = lerp(world.scale.x, 150/player.radius, 0.1);
+    world.scale = new PIXI.Point(newScale, newScale);
+    world.pivot.x = lerp(world.pivot.x, player.position.x, 0.2);
+    world.pivot.y = lerp(world.pivot.y, player.position.y, 0.2);
     world.x = window.innerWidth/2;
     world.y = window.innerHeight/2;
 
-    //console.log(velocity);
-
     //update collisions
-    for(var i = 1; i < world.children.length; i++){
-        var other = world.getChildAt(i);
-
-
+    var other;
+    for(i = 0; i < food.length; i++){
+        other = food[i];
+        if(player.eat(other)){
+            world.removeChild(other);
+            food.splice(i,1);
+        }
+    }
+    for(i = 0; i < players.length; i++){
+        other = players[i];
+        if(player.eat(other)){
+            world.removeChild(other);
+            players.splice(i,1);
+            //socket.emit('die');
+        }
     }
 }
 
 function onMove(event){
-    player.update();
-    var data = {
-        id: player.id,
-        x: player.position.x,
-        y: player.position.y,
-        radius: player.radius,
-        color: player.color
-    };
-    socket.emit('move', data);
+    //supports both touch and mouse
+    var input = event.data.global;
+
+    //calculate translation
+    input.x -= window.innerWidth/2;
+    input.y -= window.innerHeight/2;
+    player.velocity = input;
 }
 
 //=================== Santa's little helpers ===================
@@ -208,4 +185,8 @@ function limit(vector, n){
         vector.y *= n/m;
     }
     return vector;
+}
+
+function lerp(start,end,percent){
+    return (start + percent*(end - start));
 }
