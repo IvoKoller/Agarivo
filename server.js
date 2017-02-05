@@ -26,7 +26,6 @@ app.use(express.static('public'));
 
 var io = socket(server);
 io.on('connection', newConnection); //io.on == io.sockets.on
-io.on('disconnect', closeConnection);
 
 function createWorld(){
     //create random food position
@@ -43,18 +42,17 @@ function newConnection(socket){
 
     socket.on('start', start);
     socket.on('move', move);
-    socket.on('die', die);
+    socket.on('eat', eat);
+    socket.on('disconnect', closeConnection);
 
     function start(data) {
         console.log(socket.id + " " + data.x + " " + data.y + " " + data.name + " "+ data.mass + " " + data.color);
-        //send other players to client
-        socket.emit('start', players);
 
         var player = new Player(data.x, data.y, data.mass, data.name, data.color, socket.id);
         players.push(player);
         //send new player to all other clients
         //emit = all clients, broadcast = all other, exept sender
-        socket.broadcast.emit('newPlayer', player);
+        socket.broadcast.emit('new player', player);
     }
 
     function move(data) {
@@ -71,23 +69,24 @@ function newConnection(socket){
         socket.broadcast.emit('update', data);
     }
 
-    function die(data) {
+    function eat(data) {
+        console.log('User ' + data.id + ' died');
         for(i = 0; i < players.length; i++){
-            var other = players[i];
-            if(player.eat(other)){
-                world.removeChild(other);
+            if(players[i].id == data.id){
                 players.splice(i,1);
             }
         }
-        socket.broadcast.emit('deadPlayer', data);
+        //send to all clients
+        io.sockets.emit('dead player', data);
+    }
+
+    function closeConnection(){
+        console.log('User ' + socket.id + ' disconnected');
+        //delete player cell or call funny self destruct method
+        eat({id: socket.id});
     }
 }
 
-function closeConnection(){
-    console.log('User ' + socket.id + ' disconnected');
 
-    //delete player cell or call funny self destruct method
-    //...
-}
 
 console.log('Server is running...');

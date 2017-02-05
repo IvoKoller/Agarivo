@@ -2,12 +2,29 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Testpage</title>
+        <title>Agarivo</title>
         <link  rel="stylesheet" type="text/css" href="style.css" />
         <link rel="icon" type="image/png" href="img/favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="img/favicon-16x16.png" sizes="16x16" />
     </head>
     <body>
+        <div id="outer">
+            <div class="middle">
+                <div class="inner">
+                    <div id="endScreen">
+                        <h2>Thank you for playing</h2>
+                            <h1>Agarivo</h1>
+                        <h2 id="mass">Your final mass: </h2>
+                        <button onclick="window.location.reload()">Try again</button>
+                    </div>
+                    <div id="startScreen">
+                        <h1>Agarivo</h1>
+                        <input id="nick" type="text" name="name" placeholder="Nickname" maxlength="10"><br>
+                        <button onclick="start()">Play</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Load JavaScript at bottom of page because it's faster-->
         <!-- Link to CDN, always up to date -->
         <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
