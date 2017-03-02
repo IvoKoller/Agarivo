@@ -1,12 +1,10 @@
-#Agarivo
+# Agarivo
 
 Agarivo is a clone of the game ["Agario"](http://agar.io/)
 using [Node.js](https://nodejs.org/en/) and [Pixi.js](http://www.pixijs.com/)
 
-link to wiki page
-
-##Installation
-In order to run my Agario clone yourself, you have to install Node.js first.
+## Installation
+In order to host my Agario clone yourself, you have to install Node.js first.
 
 **Ubuntu**
 
@@ -21,9 +19,9 @@ $ brew install node
 ```
 **Windows**
 
-Download the Windows installer from Node.js and follow the instructions given by the installer.
+Download the Windows installer from the Node.js website and follow the instructions given by the installer.
 
-##Usage
+## Usage
 Then, run
 ```
 $ cd path/to/folder
@@ -32,4 +30,7 @@ $ node server
 
 Use mouse cursor or touch to control the movement of the cell
 
-##Documentation
+### Disclaimer:
+This is knee-deep in development and is designed to purposefully run slow
+as I am testing it on the same machine that I'm running the server on. This will
+be changed in the future.
